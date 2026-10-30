@@ -1,0 +1,186 @@
+{
+  "name": "Clasificador_Residuos",
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {},
+      "module": "telegram:WatchUpdates",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "__IMTHOOK__": 2996798
+      }
+    },
+    {
+      "id": 2,
+      "mapper": null,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "filter": {
+                "name": "Solo mensajes con foto",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.message.attachment.file_id}}",
+                      "o": "exist"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "fileId": "{{ifempty(1.message.photo[4].file_id; ifempty(1.message.photo[3].file_id; ifempty(1.message.photo[2].file_id; 1.message.attachment.file_id)))}}"
+              },
+              "module": "telegram:DownloadFile",
+              "version": 1,
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": -150
+                }
+              },
+              "parameters": {
+                "__IMTCONN__": 12017548
+              }
+            },
+            {
+              "id": 4,
+              "tools": [],
+              "mapper": {
+                "files": [
+                  {
+                    "data": "{{3.fileOutput}}",
+                    "fileName": "{{3.fileName}}"
+                  }
+                ],
+                "message": "Clasifica el residuo de la imagen.",
+                "threadId": "",
+                "outputType": "text",
+                "tokenLimit": "50",
+                "modelConfig": {
+                  "timeout": "",
+                  "recursionLimit": "300",
+                  "aiCompactionEnabled": true,
+                  "iterationsFromHistoryCount": "10"
+                },
+                "defaultModel": "large",
+                "systemPrompt": "Eres un asesor de separación de residuos para alumnos de Desarrollo Sustentable del TecNM en Mazatlán, Sinaloa.\nRecibirás la foto de un residuo. Antes de responder, observa con cuidado: identifica el objeto principal que está en primer plano y fíjate en su forma, transparencia, brillo, textura, tapa, etiqueta o logotipo. No te guies por el fondo ni por objetos secundarios. Si dudas entre dos materiales (por ejemplo PET o vidrio, aluminio o acero, papel o cartón, plástico o unicel), elige el más probable según lo que se ve y anótalo en la línea del material con la palabra \"probable\".\nResponde en texto plano (sin asteriscos, sin markdown), en español, con este formato:\n\nResiduo: [qué es]\nMaterial: [material principal]\nClasificación: [orgánico / inorgánico reciclable / inorgánico no reciclable / manejo especial o peligroso]\n¿Se recicla?: [sí / no / depende, con una línea de explicación]\nDónde va: [contenedor o lugar de acopio]\nTiempo aproximado de degradación: [tiempo]\nConsejo: [1 línea para reducir o reutilizar este residuo]\n\nSi la imagen no muestra un residuo o no se distingue, responde: \"No pude identificar el residuo, envía otra foto más clara.\"\nSi es un residuo peligroso (pilas, medicamentos, aceite, químicos), indícalo y recomienda no tirarlo a la basura común.",
+                "promptCaching": "none",
+                "fallbackEnabled": false
+              },
+              "module": "ai-local-agent:RunLocalAIAgent",
+              "version": 0,
+              "metadata": {
+                "designer": {
+                  "x": 900,
+                  "y": -150
+                }
+              },
+              "parameters": {
+                "makeConnectionId": 10771262
+              }
+            },
+            {
+              "id": 5,
+              "mapper": {
+                "text": "{{4.response}}",
+                "chatId": "{{1.message.chat.id}}",
+                "parseMode": "",
+                "replyMarkup": "",
+                "messageThreadId": "",
+                "replyToMessageId": "",
+                "replyMarkupAssembleType": "reply_markup_enter"
+              },
+              "module": "telegram:SendReplyMessage",
+              "version": 1,
+              "metadata": {
+                "designer": {
+                  "x": 1200,
+                  "y": -150
+                }
+              },
+              "parameters": {
+                "__IMTCONN__": 12017548
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 6,
+              "filter": {
+                "name": "Mensaje sin foto",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.message.chat.id}}",
+                      "o": "exist"
+                    },
+                    {
+                      "a": "{{1.message.attachment.file_id}}",
+                      "o": "notexist"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "text": "Hola, soy el Clasificador de Residuos. Envíame una foto de un residuo (cáscara, botella, lata, pila...) y te digo qué es, si se recicla, en qué contenedor va y cuánto tarda en degradarse.",
+                "chatId": "{{1.message.chat.id}}",
+                "parseMode": "",
+                "replyMarkup": "",
+                "messageThreadId": "",
+                "replyToMessageId": "",
+                "replyMarkupAssembleType": "reply_markup_enter"
+              },
+              "module": "telegram:SendReplyMessage",
+              "version": 1,
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": 150
+                }
+              },
+              "parameters": {
+                "__IMTCONN__": 12017548
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}
