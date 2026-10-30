@@ -11,36 +11,9 @@ Reporte técnico de la práctica **3.3 Impacto de actividades humanas sobre la n
 | Herramientas | Telegram (BotFather), Make (Telegram Bot y Make AI Agent con visión) |
 | Fecha de las pruebas | 29 de octubre de 2026 |
 
-## Contenido del repositorio
-
-```text
-.
-├── README.md                  Reporte técnico (este archivo)
-├── codigo/
-│   └── blueprint.json         Escenario de Make exportado
-├── imagenes/                  Capturas del escenario, de los filtros y de las pruebas
-├── video/
-│   └── enlace.txt             Enlace al video en YouTube con la prueba en vivo
-└── resultados/
-    └── Resultados.pdf         Documento con lo aprendido en la práctica
-```
-
-## Objetivo
-
-Identificar el impacto de los residuos que se generan en la vida diaria, construir sin programar un clasificador de residuos con inteligencia artificial y evaluar su precisión comparándola con fuentes oficiales.
-
 ## Cómo funciona
 
 El usuario le manda al bot de Telegram la foto de un residuo. Make recibe la foto, la descarga, se la entrega a un agente de IA con visión y el agente responde qué es el residuo, de qué material está hecho, cómo se clasifica, si se recicla, a dónde va y cuánto tarda en degradarse. Si el mensaje no trae foto, el bot responde con instrucciones de uso.
-
-```mermaid
-flowchart LR
-  A[1 Telegram Watch Updates] --> B{2 Router}
-  B -- "Solo mensajes con foto" --> C[3 Download a File]
-  C --> D[4 Make AI Agent con visión]
-  D --> E[5 Send a Text Message or a Reply]
-  B -- "Mensaje sin foto" --> F[6 Send a Text Message or a Reply]
-```
 
 ### Módulos del escenario `Clasificador_Residuos`
 
@@ -59,66 +32,6 @@ flowchart LR
 |---|---|---|
 | 1 | Solo mensajes con foto | Message: Attachment: File ID existe |
 | 2 | Mensaje sin foto | Message: Chat: ID existe y Message: Attachment: File ID no existe |
-
-### Instrucciones del agente
-
-```text
-Eres un asesor de separación de residuos para alumnos de Desarrollo Sustentable del TecNM en Mazatlán, Sinaloa.
-Recibirás la foto de un residuo. Antes de responder, observa con cuidado: identifica el objeto principal que está en primer plano y fíjate en su forma, transparencia, brillo, textura, tapa, etiqueta o logotipo. No te guies por el fondo ni por objetos secundarios. Si dudas entre dos materiales, elige el más probable según lo que se ve y anótalo en la línea del material con la palabra "probable".
-Responde en texto plano (sin asteriscos, sin markdown), en español, con este formato:
-
-Residuo: [qué es]
-Material: [material principal]
-Clasificación: [orgánico / inorgánico reciclable / inorgánico no reciclable / manejo especial o peligroso]
-¿Se recicla?: [sí / no / depende, con una línea de explicación]
-Dónde va: [contenedor o lugar de acopio]
-Tiempo aproximado de degradación: [tiempo]
-Consejo: [1 línea para reducir o reutilizar este residuo]
-
-Si la imagen no muestra un residuo o no se distingue, responde: "No pude identificar el residuo, envía otra foto más clara."
-Si es un residuo peligroso (pilas, medicamentos, aceite, químicos), indícalo y recomienda no tirarlo a la basura común.
-```
-
-### Problema encontrado y cómo se resolvió
-
-En las primeras pruebas la IA confundía los materiales y respondía cosas que no tenían relación con el objeto. Al revisar el historial de ejecuciones de Make se vio que el módulo Download a File descargaba la **miniatura** de la foto: el campo `Message: Attachment: File ID` apunta a la versión más pequeña (51 × 90 píxeles y 1 KB), mientras que Telegram también manda versiones de 720 × 1280 píxeles (127 KB). Con una imagen tan borrosa el agente adivinaba. La solución fue mapear el File ID de la versión más grande de la lista `Message: Photo`, con `ifempty()` para usar la siguiente más grande si no existiera. Después del cambio los datos transferidos por foto pasaron de unos 6 KB a entre 88 KB y 359 KB y las respuestas empezaron a coincidir con lo que se veía en la foto.
-
-![Módulo Download a File con el File ID de la foto más grande](imagenes/04-modulo-download-file.jpg)
-
-### Cómo reproducirlo
-
-1. En Telegram, abrir `@BotFather`, enviar `/newbot` y crear el bot Clasificador Residuos.
-2. En Make, crear una conexión de Telegram con el token del bot.
-3. Importar `codigo/blueprint.json` en un escenario nuevo (menú de los tres puntos, Import Blueprint) y volver a elegir la conexión de Telegram, el webhook y la conexión Make's AI Provider.
-4. Activar el escenario y enviar la foto de un residuo al bot.
-
-### Seguridad
-
-- El token del bot no está en este repositorio: se guardó únicamente dentro de la conexión de Make.
-- El blueprint solo contiene identificadores internos de Make; no incluye contraseñas ni claves.
-- Las capturas no muestran el token ni las pantallas de BotFather.
-
-## Imágenes del escenario
-
-![Escenario completo](imagenes/01-escenario-completo.jpg)
-
-Escenario completo, de izquierda a derecha: Watch Updates, Router, Download a File, Make AI Agent y respuesta. Debajo del Router, la ruta de los mensajes sin foto. Las etiquetas de los filtros se ven sobre cada ruta.
-
-![Filtro Solo mensajes con foto](imagenes/02-filtro-solo-mensajes-con-foto.jpg)
-
-Filtro “Solo mensajes con foto”: el File ID del adjunto existe.
-
-![Filtro Mensaje sin foto](imagenes/03-filtro-mensaje-sin-foto.jpg)
-
-Filtro “Mensaje sin foto”: existe el Chat ID y el File ID no existe.
-
-![Módulo Make AI Agent](imagenes/05-modulo-make-ai-agent.jpg)
-
-Configuración del Make AI Agent con la conexión Make's AI Provider y las instrucciones del asesor de residuos.
-
-## Video
-
-El video con la prueba en vivo está en YouTube: [https://youtu.be/8wRCzbViQjI](https://youtu.be/8wRCzbViQjI) (el mismo enlace está en `video/enlace.txt`).
 
 ---
 
@@ -174,16 +87,6 @@ Se fotografiaron 10 residuos distintos y se enviaron al bot entre las 8:45 y las
 | 9 | Placa de madera en una coladera | Inorgánico no reciclable (residuo voluminoso); la IA dijo MDF | Parcial: el material es correcto, pero la categoría es discutible | 10 a 50 años | No se encontró fuente oficial | [4] |
 | 10 | Botella de bebida energizante | Inorgánico reciclable; PET | Sí | Unos 450 años | Botella de plástico: 100 a 1000 años | [3], [1] |
 
-Capturas de algunas pruebas (la lista completa de respuestas se conserva en el chat del bot):
-
-![Prueba 1, cajón de plástico](imagenes/06-prueba-cajon-plastico.jpg)
-
-![Prueba 2, bolsa de frituras](imagenes/07-prueba-bolsa-frituras.jpg)
-
-![Prueba 5, bandeja roja: error de la IA](imagenes/08-prueba-bandeja-roja-error.jpg)
-
-![Prueba 10, botella](imagenes/09-prueba-botella.jpg)
-
 ### Porcentaje de aciertos
 
 - **Aciertos plenos: 7 de 10 (70 %).** Cuentan los residuos 1, 2, 3, 6, 7, 8 y 10.
@@ -229,10 +132,3 @@ La responsabilidad es compartida, y la LGPGIR parte justamente de ese principio 
 
 El primer cambio sería reducir los empaques que no tienen ninguna salida, como las bolsas de frituras y los plásticos de un solo uso, comprando a granel o en envases retornables y usando bolsas y botella reutilizables. El segundo sería separar en casa los residuos que sí se reciclan (PET, latas, cartón y envases Tetra Pak), lavarlos y llevarlos a un centro de acopio en lugar de tirarlos con la basura. El tercero sería fijarme en el material y en el código del plástico antes de comprar, para elegir envases reciclables. El cuarto sería reutilizar los objetos duraderos, como cajones, bandejas y frascos, antes de desecharlos. Por último, no tirar nada en la calle ni en las coladeras, porque la práctica mostró que esos residuos terminan en la playa.
 
----
-
-## Conclusión
-
-El clasificador mostró que una IA con visión puede dar una orientación útil sobre qué es un residuo y cómo separarlo: acertó plenamente en 7 de las 10 pruebas (70 %), pero también se equivocó con un objeto de material engañoso y sugirió contenedores que no existen en la ciudad. Esto confirma que sirve como apoyo, no como autoridad, y que sus respuestas deben verificarse con fuentes oficiales. La práctica también dejó claro que clasificar bien no basta si no hay recolección separada y puntos de acopio, y que la calidad de los datos de entrada (la foto completa, no la miniatura) determina la calidad de la respuesta.
-
-Más detalle de lo aprendido en [resultados/Resultados.pdf](resultados/Resultados.pdf).
